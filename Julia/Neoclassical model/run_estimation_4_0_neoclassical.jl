@@ -3,7 +3,11 @@ using SymPy, LinearAlgebra, Statistics # Necessary
 using Parameters # Cosmetic
 using Random, BenchmarkTools # Timing
 
-BLAS.vendor()
+#v1.7+
+# using MKL
+
+#v1.7- 
+BLAS.vendor() 
 :mkl
 
 include("solution_functions_4_0.jl")

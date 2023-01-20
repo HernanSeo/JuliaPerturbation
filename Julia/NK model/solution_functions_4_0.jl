@@ -562,7 +562,7 @@ function martin_van_loan(a::Matrix{Float64}, b::Matrix{Float64}, c::Matrix{Float
     (v,s) = hessenberg(b)       # v*s*v' = b
     (t,q) = schur(complex(c'))  # q*t*q' = c'
 
-    v = Matrix(v)
+    v = Matrix{Float64}(v)
 
     p = k + 2
     TT = Array{typeof(t)}(undef,p)
@@ -589,7 +589,7 @@ function martin_van_loan(a::Matrix{Float64}, b::Matrix{Float64}, c::Matrix{Float
         end
         e_aux[:,j] .= reshape(Matrix(z),N)
     end
-    e = vec(v'*e_aux')
+    e = Array{Complex}((v'*e_aux')[:])
 
     y = reshape(KPShiftSolve(TT,n,e,lambda,1.0),size(d))
 
