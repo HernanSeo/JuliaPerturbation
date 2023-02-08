@@ -4,11 +4,11 @@ using Parameters # Cosmetic
 using Random, BenchmarkTools # Timing
 
 #v1.7+
-# using MKL
+using MKL
 
 #v1.7- 
-BLAS.vendor() 
-:mkl
+# BLAS.vendor() 
+# :mkl
 
 include("solution_functions_4_0.jl")
 include("smc_rwmh_nk_4_0_v2.jl")
@@ -174,7 +174,7 @@ include("smc_rwmh_nk_4_0_v2.jl")
 ## Sample for estimation
         TS = 1000
         Simulation_logdev = simulation_dsge(model, sol_mat, SS, VAR, TS, zeros(model.nx), true, false)
-        data = Simulation_logdev[model.nx+1:model.nx+3,TS-199:TS] # las observables se ordenan al final del vector de simulations
+        data = Simulation_logdev[model.nx+1:model.nx+3,TS-499:TS] # las observables se ordenan al final del vector de simulations
 
 ## Estimation
         initial_para = [0.9; 0.05]

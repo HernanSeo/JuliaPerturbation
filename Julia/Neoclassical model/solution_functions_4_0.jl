@@ -35,7 +35,7 @@
                 end
             end
 
-            ns =
+            # ns =
 
             return (flag_order = flag_order, flag_deviation = flag_deviation,
                     flag_SSestimation = flag_SSestimation, flag_nologlin = flag_nologlin,
