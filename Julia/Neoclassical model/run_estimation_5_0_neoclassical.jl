@@ -24,7 +24,7 @@ include("smc_rwmh_neoclassical_5_0_v2.jl")
             estimate    =   [RHO; MUU]
 
     # Variables
-       @vars c cp k kp a ap yy yyp r rp ii iip
+       @vars k kp a ap c cp n np yy yyp r rp ii iip
            x    =   [k; a]
            y    =   [c; n; r; yy; ii]
            xp   =   [kp; ap]
@@ -37,7 +37,7 @@ include("smc_rwmh_neoclassical_5_0_v2.jl")
 
     # Equilibrium conditions
             f1  =   c + kp - (1-DELTA) * k - a * k^ALPHA * n^(1-ALPHA)
-            f2  =   c^(-SIGMA) - BETA * cp^(-SIGMA) * (ap * ALPHA * kp^(ALPHA-1) * n^(1-ALPHA) + 1 - DELTA)
+            f2  =   c^(-SIGMA) - BETA * cp^(-SIGMA) * (ap * ALPHA * kp^(ALPHA-1) * np^(1-ALPHA) + 1 - DELTA)
             f3  =   AA - c^(-SIGMA) * a * (1-ALPHA) * k^ALPHA * n^(-ALPHA) 
             f4  =   log(ap) - RHO * log(a)
             f5  =   r - a * ALPHA * k^(ALPHA-1) * n^(1-ALPHA)
@@ -51,7 +51,7 @@ include("smc_rwmh_neoclassical_5_0_v2.jl")
             N   =   2/3
             K   =   (ALPHA/(1/BETA-1+DELTA))^(1/(1-ALPHA))*N
             C   =   A * K^(ALPHA) * N^(1-ALPHA) - DELTA*K
-            R   =   A * ALPHA*K^(ALPHA-1.0) * N^(1-ALPHA)
+            R   =   A * ALPHA * K^(ALPHA-1.0) * N^(1-ALPHA)
             YY  =   A * K^ALPHA * N^(1-ALPHA)
             II  =   DELTA*K
 
@@ -59,12 +59,14 @@ include("smc_rwmh_neoclassical_5_0_v2.jl")
                     log(K); # k
                     log(A); # a
                     log(C); # c
+                    log(N);
                     log(R);
                     log(YY);
                     log(II);
                     log(K); # kp
                     log(A); # ap
                     log(C); # cp
+                    log(N);
                     log(R);
                     log(YY);
                     log(II)
@@ -91,6 +93,9 @@ include("smc_rwmh_neoclassical_5_0_v2.jl")
         SS_string       = steadystate(model)
         eval(SS_string)
 
+        SS_error_string = ss_error(model)
+        eval(SS_error_string)
+
         deriv_string    = derivatives(model)
         eval(deriv_string)
 
@@ -109,7 +114,10 @@ include("smc_rwmh_neoclassical_5_0_v2.jl")
         VAR     =   eval_ShockVAR(PAR)
         PAR_SS  =   eval_PAR_SS(PAR)
         SS      =   eval_SS(PAR_SS)
+        SS_err  =   eval_SS_error(PAR_SS, SS)
         deriv   =   eval_deriv(PAR_SS, SS)
+
+        println("Residuals: $SS_ER")
 
      # Solve the model given the current parametrization
         println("Solving first order")

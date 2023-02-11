@@ -349,9 +349,12 @@ function objfun(yy, p0, phi_smc, model, nobs)
         VAR     =   eval_ShockVAR(PAR)
         PAR_SS  =   eval_PAR_SS(PAR)
         SS      =   eval_SS(PAR_SS)
+        # SS_ER   =   eval_SS_error(PAR_SS, SS)
         deriv   =   eval_deriv(PAR_SS, SS)
 
         sol_mat     =   solve_perturbation(model, deriv, VAR)
+
+        # println(SS_ER)
 
         # print(sol_mat.fo_mat.hx)
         if sol_mat.fo_mat.qzflag .== 1
@@ -362,6 +365,7 @@ function objfun(yy, p0, phi_smc, model, nobs)
                         Matrix{Float64}(I, nobs, model.ny)*sol_mat.fo_mat.gx,     # ZZ = B*gx;
                         [0.00001 0.0 0.0; 0.0 0.00001 0.0; 0.0 0.0 0.00001],   # HH = [0.0001 0.0 0.0 ;0.0 0.0001 0.0 ; 0.0 0.0 0.0001]#zeros(3,3)# diag(nVAR_me);   m.e. must be in STD
                         t0)#, At_ini)
+                         
         else
             return -1000000.0
         end

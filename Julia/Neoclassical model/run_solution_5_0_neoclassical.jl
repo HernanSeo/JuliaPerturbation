@@ -11,7 +11,7 @@ using MKL
 # :mkl
 
 include("solution_functions_5_0.jl")
-include("smc_rwmh_neoclassical_5_0_v2.jl")
+# include("smc_rwmh_neoclassical_5_0_v2.jl")
 
 ## Model
     # Ajustes
@@ -43,7 +43,7 @@ include("smc_rwmh_neoclassical_5_0_v2.jl")
 
 # Equilibrium conditions
    f1  =   c + kp - (1-DELTA) * k - a * k^ALPHA * n^(1-ALPHA)
-   f2  =   c^(-SIGMA) - BETA * cp^(-SIGMA) * (ap * ALPHA * kp^(ALPHA-1) * n^(1-ALPHA) + 1 - DELTA)
+   f2  =   c^(-SIGMA) - BETA * cp^(-SIGMA) * (ap * ALPHA * kp^(ALPHA-1) * np^(1-ALPHA) + 1 - DELTA)
    f3  =   AA - c^(-SIGMA) * a * (1-ALPHA) * k^ALPHA * n^(-ALPHA)  
    f4  =   log(ap) - RHO * log(a)
 
@@ -86,6 +86,9 @@ include("smc_rwmh_neoclassical_5_0_v2.jl")
         SS_string       = steadystate(model)
         eval(SS_string)
 
+        SS_error_string = ss_error(model)
+        eval(SS_error_string)
+
         deriv_string    = derivatives(model)
         eval(deriv_string)
 
@@ -104,7 +107,9 @@ include("smc_rwmh_neoclassical_5_0_v2.jl")
         VAR     =   eval_ShockVAR(PAR)
         PAR_SS  =   eval_PAR_SS(PAR)
         SS      =   eval_SS(PAR_SS)
+        SS_ER   =   eval_SS_error(PAR_SS, SS)
         deriv   =   eval_deriv(PAR_SS, SS)
+        println("Residuals: $SS_ER")
 
     # Solve the model given the current parametrization
         sol_mat =   solve_perturbation(model, deriv, VAR)

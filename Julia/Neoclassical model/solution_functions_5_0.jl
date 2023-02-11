@@ -109,13 +109,38 @@
         return function_string
     end
 
+    function ss_error(model::NamedTuple)
+        @unpack flag_order, flag_deviation, flag_SSestimation, parameters, x, y, xp, yp, variables = model
+        @unpack e, eta, f, n, nx, ny, ne, np, SS, PAR_SS, skew = model
+
+        f_aux = similar(f)
+        copyto!(f_aux,f)
+        
+        for j in variables
+            copyto!(f_aux,subs.(f_aux, j, (exp(j))))
+        end
+
+        for iv in 1:2(nx+ny)
+            copyto!(f_aux, f_aux.subs(variables[iv],Sym("SS["*string(iv)*"]")))
+        end
+        for ip in 1:np
+            copyto!(f_aux, f_aux.subs(parameters[ip],Sym("PAR["*string(ip)*"]")))
+        end
+        
+        function_string = Meta.parse("function eval_SS_error(PAR, SS); return " * string(f_aux)[4:end] * "; end;"
+                                    )
+
+        return function_string
+    end
+
+
 function ShockVAR(model::NamedTuple)
     @unpack np, eta = model
 
     eta_aux = eta
     neta = length(eta)
 
-    if typeof(eta) == Vector{Sym}
+    if typeof(eta) == Vector{Sym} || typeof(eta) == Matrix{Sym}
         for i1 in 1:size(eta_aux,1)
             for i2 in 1:size(eta_aux,2)
                 for ip in 1:model.np
