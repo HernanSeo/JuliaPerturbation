@@ -35,8 +35,8 @@
                     SS = SS, PAR_SS = PAR_SS, skew = zeros(ne,ne^2))
         else
             estimation = []
-            for ii in 1:size(estimate,1)
-                for jj in 1:np
+            @inbounds for ii in 1:size(estimate,1)
+                @inbounds for jj in 1:np
                     if parameters[jj] == estimate[ii]
                         push!(estimation,jj)
                     end
@@ -65,7 +65,7 @@
         if flag_SSestimation
             fss = copy(f)
 
-            for iv in 1:(nx+ny)
+            @inbounds for iv in 1:(nx+ny)
                 fss = simplify.(subs.(fss, variables[(nx+ny)+iv],variables[iv]))
             end
 
@@ -73,7 +73,7 @@
             # SS = Array{Sym}(undef, 2(nx+ny))
 
             if flag_deviation
-                for iv in 1:(nx+ny)
+                @inbounds for iv in 1:(nx+ny)
                     if SS_aux[1][iv] == 0
                         copyto!(model.flag_nologlin, true)
                         model.vec_nologlin = push!(model.vec_nologlin, variables[iv])
@@ -85,14 +85,14 @@
                     end
                 end
             else
-                for iv in 1:(nx+ny)
+                @inbounds for iv in 1:(nx+ny)
                     SS[iv] = SS_aux[1][iv]
                     SS[(nx+ny)+iv] = SS_aux[1][iv]
                 end
             end
         end
 
-        for ip in 1:np
+        @inbounds for ip in 1:np
             copyto!(SS, SS.subs(parameters[ip],Sym("PAR["*string(ip)*"]")))
         end
 
@@ -107,7 +107,7 @@
         @unpack e, eta, f, n, nx, ny, ne, np, SS, PAR_SS, skew = model
 
 
-        for ip in 1:np
+        @inbounds for ip in 1:np
             copyto!(PAR_SS, PAR_SS.subs(parameters[ip],Sym("PAR["*string(ip)*"]")))
         end
 
@@ -124,14 +124,14 @@
         f_aux = similar(f)
         copyto!(f_aux,f)
         
-        for j in variables
+        @inbounds for j in variables
             copyto!(f_aux,subs.(f_aux, j, (exp(j))))
         end
 
-        for iv in 1:2(nx+ny)
+        @inbounds for iv in 1:2(nx+ny)
             copyto!(f_aux, f_aux.subs(variables[iv],Sym("SS["*string(iv)*"]")))
         end
-        for ip in 1:np
+        @inbounds for ip in 1:np
             copyto!(f_aux, f_aux.subs(parameters[ip],Sym("PAR["*string(ip)*"]")))
         end
         
@@ -149,9 +149,9 @@ function ShockVAR(model::NamedTuple)
     neta = length(eta)
 
     if typeof(eta) == Vector{Sym} || typeof(eta) == Matrix{Sym}
-        for i1 in 1:size(eta_aux,1)
-            for i2 in 1:size(eta_aux,2)
-                for ip in 1:model.np
+        @inbounds for i1 in 1:size(eta_aux,1)
+            @inbounds for i2 in 1:size(eta_aux,2)
+                @inbounds for ip in 1:model.np
                     eta_aux[i1,i2] = subs(eta_aux[i1,i2], parameters[ip], Sym("PAR["*string(ip)*"]"))
                 end
             end
@@ -172,13 +172,13 @@ function derivatives(model::NamedTuple)
 
     if flag_deviation
         if flag_nologlin
-           for j in variables
+            @inbounds for j in variables
                if j ∉ vec_nologlin
                    copyto!(f,subs.(f, j, (exp(j))))
                end
            end
        else
-           for j in variables
+        @inbounds for j in variables
                copyto!(f,subs.(f, j, (exp(j))))
            end
        end
@@ -192,8 +192,8 @@ function derivatives(model::NamedTuple)
         end
     end
 
-    for i in 1:n
-        for j in 1:2*(nx+ny)
+    @inbounds for i in 1:n
+        @inbounds for j in 1:2*(nx+ny)
             fd_aux = diff(f[i], variables[j])
             if fd_aux != 0
                 # for m1 in 1:2*(nx+ny)
@@ -203,7 +203,7 @@ function derivatives(model::NamedTuple)
                 push!(fd_l, i)
                 push!(fd_c, j)
                 if flag_order > 1
-                    for k in 1:2*(nx+ny)
+                    @inbounds for k in 1:2*(nx+ny)
                         sd_aux = diff(f[i], variables[j], variables[k])
                         if sd_aux != 0
                             # for m2 in 1:2*(nx+ny)
@@ -213,7 +213,7 @@ function derivatives(model::NamedTuple)
                             push!(sd_l, i)
                             push!(sd_c, (j-1)*2(nx+ny)+k)
                             if flag_order > 2
-                                for l in 1:2*(nx+ny)
+                                @inbounds for l in 1:2*(nx+ny)
                                     td_aux = diff(f[i], variables[j], variables[k], variables[l])
                                     if td_aux != 0
                                         # for m3 in 1:2*(nx+ny)
@@ -233,37 +233,37 @@ function derivatives(model::NamedTuple)
     end
 
     if flag_order == 1
-        for iv in 1:2(nx+ny)
+        @inbounds for iv in 1:2(nx+ny)
             copyto!(fd_v, fd_v.subs(variables[iv],Sym("SS["*string(iv)*"]")))
         end
-        for ip in 1:np
+        @inbounds for ip in 1:np
             copyto!(fd_v, fd_v.subs(parameters[ip],Sym("PAR["*string(ip)*"]")))
         end
-        function_string = Meta.parse("function eval_deriv(PAR, SS); flag_order = " * string(model.flag_order) * "; n = " * string(model.n) * "; nx = " * string(model.nx) * "; ny = " * string(model.ny) * "; fd_l = " * string(fd_l) * "; fd_c = " * string(fd_c) * "; if flag_order == 3; deriv = (d1 = Array{Float64}(zeros(n, 2*(nx+ny))), d2 = Array{Float64}(zeros(n, 4*(nx+ny)^2)), d3 = Array{Float64}(zeros(n, 8*(nx+ny)^3))); elseif flag_order == 2; deriv = (d1 = Array{Float64}(zeros(n, 2*(nx+ny))), d2 = Array{Float64}(zeros(n, 4*(nx+ny)^2)), d3 = Array{Float64}(zeros(0))); elseif flag_order == 1; deriv = (d1 = Array{Float64}(zeros(n, 2*(nx+ny))), d2 = Array{Float64}(zeros(0)), d3 = Array{Float64}(zeros(0))); end; d1 = " * string(fd_v)[4:end] * "; for ii in 1:length(d1); deriv.d1[fd_l[ii], fd_c[ii]] = d1[ii]; end; return deriv; end;")
+        function_string = Meta.parse("function eval_deriv(PAR, SS); flag_order = " * string(model.flag_order) * "; n = " * string(model.n) * "; nx = " * string(model.nx) * "; ny = " * string(model.ny) * "; fd_l = " * string(fd_l) * "; fd_c = " * string(fd_c) * "; if flag_order == 3; deriv = (d1 = Array{Float64}(zeros(n, 2*(nx+ny))), d2 = Array{Float64}(zeros(n, 4*(nx+ny)^2)), d3 = Array{Float64}(zeros(n, 8*(nx+ny)^3))); elseif flag_order == 2; deriv = (d1 = Array{Float64}(zeros(n, 2*(nx+ny))), d2 = Array{Float64}(zeros(n, 4*(nx+ny)^2)), d3 = Array{Float64}(zeros(0))); elseif flag_order == 1; deriv = (d1 = Array{Float64}(zeros(n, 2*(nx+ny))), d2 = Array{Float64}(zeros(0)), d3 = Array{Float64}(zeros(0))); end; d1 = " * string(fd_v)[4:end] * "; @inbounds for ii in 1:length(d1); deriv.d1[fd_l[ii], fd_c[ii]] = d1[ii]; end; return deriv; end;")
         return function_string
     elseif flag_order == 2
-        for iv in 1:2(nx+ny)
+        @inbounds for iv in 1:2(nx+ny)
             copyto!(fd_v, fd_v.subs(variables[iv],Sym("SS["*string(iv)*"]")))
             copyto!(sd_v, sd_v.subs(variables[iv],Sym("SS["*string(iv)*"]")))
         end
-        for ip in 1:np
+        @inbounds for ip in 1:np
             copyto!(fd_v, fd_v.subs(parameters[ip],Sym("PAR["*string(ip)*"]")))
             copyto!(sd_v, sd_v.subs(parameters[ip],Sym("PAR["*string(ip)*"]")))
         end
-        function_string = Meta.parse("function eval_deriv(PAR, SS); flag_order = " * string(model.flag_order) * "; n = " * string(model.n) * "; nx = " * string(model.nx) * "; ny = " * string(model.ny) * "; fd_l = " * string(fd_l) * "; fd_c = " * string(fd_c) * "; sd_l = " * string(sd_l) * "; sd_c = " * string(sd_c) * "; if flag_order == 3; deriv = (d1 = Array{Float64}(zeros(n, 2*(nx+ny))), d2 = Array{Float64}(zeros(n, 4*(nx+ny)^2)), d3 = Array{Float64}(zeros(n, 8*(nx+ny)^3))); elseif flag_order == 2; deriv = (d1 = Array{Float64}(zeros(n, 2*(nx+ny))), d2 = Array{Float64}(zeros(n, 4*(nx+ny)^2)), d3 = Array{Float64}(zeros(0))); elseif flag_order == 1; deriv = (d1 = Array{Float64}(zeros(n, 2*(nx+ny))), d2 = Array{Float64}(zeros(0)), d3 = Array{Float64}(zeros(0))); end; d1 = " * string(fd_v)[4:end] * "; for ii in 1:length(d1); deriv.d1[fd_l[ii],fd_c[ii]] = d1[ii]; end; if flag_order > 1; d2 =" * string(sd_v)[4:end] * "; for ii in 1:length(d2); deriv.d2[sd_l[ii],sd_c[ii]] = d2[ii]; end; end; return deriv; end;")
+        function_string = Meta.parse("function eval_deriv(PAR, SS); flag_order = " * string(model.flag_order) * "; n = " * string(model.n) * "; nx = " * string(model.nx) * "; ny = " * string(model.ny) * "; fd_l = " * string(fd_l) * "; fd_c = " * string(fd_c) * "; sd_l = " * string(sd_l) * "; sd_c = " * string(sd_c) * "; if flag_order == 3; deriv = (d1 = Array{Float64}(zeros(n, 2*(nx+ny))), d2 = Array{Float64}(zeros(n, 4*(nx+ny)^2)), d3 = Array{Float64}(zeros(n, 8*(nx+ny)^3))); elseif flag_order == 2; deriv = (d1 = Array{Float64}(zeros(n, 2*(nx+ny))), d2 = Array{Float64}(zeros(n, 4*(nx+ny)^2)), d3 = Array{Float64}(zeros(0))); elseif flag_order == 1; deriv = (d1 = Array{Float64}(zeros(n, 2*(nx+ny))), d2 = Array{Float64}(zeros(0)), d3 = Array{Float64}(zeros(0))); end; d1 = " * string(fd_v)[4:end] * "; for ii in 1:length(d1); deriv.d1[fd_l[ii],fd_c[ii]] = d1[ii]; end; if flag_order > 1; d2 =" * string(sd_v)[4:end] * "; @inbounds for ii in 1:length(d2); deriv.d2[sd_l[ii],sd_c[ii]] = d2[ii]; end; end; return deriv; end;")
         return function_string
     elseif flag_order == 3
-        for iv in 1:2(nx+ny)
+        @inbounds for iv in 1:2(nx+ny)
             copyto!(fd_v, fd_v.subs(variables[iv],Sym("SS["*string(iv)*"]")))
             copyto!(sd_v, sd_v.subs(variables[iv],Sym("SS["*string(iv)*"]")))
             copyto!(td_v, td_v.subs(variables[iv],Sym("SS["*string(iv)*"]")))
         end
-        for ip in 1:np
+        @inbounds for ip in 1:np
             copyto!(fd_v, fd_v.subs(parameters[ip],Sym("PAR["*string(ip)*"]")))
             copyto!(sd_v, sd_v.subs(parameters[ip],Sym("PAR["*string(ip)*"]")))
             copyto!(td_v, td_v.subs(parameters[ip],Sym("PAR["*string(ip)*"]")))
         end
-        function_string = Meta.parse("function eval_deriv(PAR, SS); flag_order = " * string(model.flag_order) * "; n = " * string(model.n) * "; nx = " * string(model.nx) * "; ny = " * string(model.ny) * "; fd_l = " * string(fd_l) * "; fd_c = " * string(fd_c) * "; sd_l = " * string(sd_l) * "; sd_c = " * string(sd_c) * "; td_l = " * string(td_l) * "; td_c = " * string(td_c) * "; if flag_order == 3; deriv = (d1 = Array{Float64}(zeros(n, 2*(nx+ny))), d2 = Array{Float64}(zeros(n, 4*(nx+ny)^2)), d3 = Array{Float64}(zeros(n, 8*(nx+ny)^3))); elseif flag_order == 2; deriv = (d1 = Array{Float64}(zeros(n, 2*(nx+ny))), d2 = Array{Float64}(zeros(n, 4*(nx+ny)^2)), d3 = Array{Float64}(zeros(0))); elseif flag_order == 1; deriv = (d1 = Array{Float64}(zeros(n, 2*(nx+ny))), d2 = Array{Float64}(zeros(0)), d3 = Array{Float64}(zeros(0))); end; d1 = " * string(fd_v)[4:end] * "; for ii in 1:length(d1); deriv.d1[fd_l[ii],fd_c[ii]] = d1[ii]; end; if flag_order > 1; d2 =" * string(sd_v)[4:end] * "; for ii in 1:length(d2); deriv.d2[sd_l[ii],sd_c[ii]] = d2[ii]; end; if flag_order > 2; d3 =" * string(td_v)[4:end] * "; for ii in 1:length(d3); deriv.d3[td_l[ii],td_c[ii]] = d3[ii]; end; end; end; return deriv; end;")
+        function_string = Meta.parse("function eval_deriv(PAR, SS); flag_order = " * string(model.flag_order) * "; n = " * string(model.n) * "; nx = " * string(model.nx) * "; ny = " * string(model.ny) * "; fd_l = " * string(fd_l) * "; fd_c = " * string(fd_c) * "; sd_l = " * string(sd_l) * "; sd_c = " * string(sd_c) * "; td_l = " * string(td_l) * "; td_c = " * string(td_c) * "; if flag_order == 3; deriv = (d1 = Array{Float64}(zeros(n, 2*(nx+ny))), d2 = Array{Float64}(zeros(n, 4*(nx+ny)^2)), d3 = Array{Float64}(zeros(n, 8*(nx+ny)^3))); elseif flag_order == 2; deriv = (d1 = Array{Float64}(zeros(n, 2*(nx+ny))), d2 = Array{Float64}(zeros(n, 4*(nx+ny)^2)), d3 = Array{Float64}(zeros(0))); elseif flag_order == 1; deriv = (d1 = Array{Float64}(zeros(n, 2*(nx+ny))), d2 = Array{Float64}(zeros(0)), d3 = Array{Float64}(zeros(0))); end; d1 = " * string(fd_v)[4:end] * "; for ii in 1:length(d1); deriv.d1[fd_l[ii],fd_c[ii]] = d1[ii]; end; if flag_order > 1; d2 =" * string(sd_v)[4:end] * "; for ii in 1:length(d2); deriv.d2[sd_l[ii],sd_c[ii]] = d2[ii]; end; if flag_order > 2; d3 =" * string(td_v)[4:end] * "; @inbounds for ii in 1:length(d3); deriv.d3[td_l[ii],td_c[ii]] = d3[ii]; end; end; end; return deriv; end;")
         return function_string
     end
 end
@@ -356,7 +356,7 @@ function second_order(fd::Matrix{Float64}, sd::Matrix{Float64},
     B = [zeros(n,nx) fyp]
 
     D_aux = zeros(nx^2,nx+ny)
-    for i = 1:nx+ny
+    @inbounds for i = 1:nx+ny
         @views D_aux[:,i] = vec(Mx'*reshape(sd'[:,i],2*(nx+ny),2*(nx+ny))*Mx)
     end
     D = -Matrix(D_aux')
@@ -374,24 +374,24 @@ function second_order(fd::Matrix{Float64}, sd::Matrix{Float64},
     S_aux = VAR
 
     p1 = zeros(nx^2,(nx+ny))
-    for i = 1:nx+ny
+    @inbounds for i = 1:nx+ny
         @views p1[:,i]  = vec((Ns*S_aux)'*reshape(sd'[:,i],2*(nx+ny),2*(nx+ny))*Ns)
     end
     F1_aux = Matrix(p1')
     k1 = Int(round(sqrt(size(F1_aux)[2])))
     F1 = zeros(size(F1_aux)[1])
-    for i = 1:k1
+    @inbounds for i = 1:k1
         @views F1 += F1_aux[:,i+(i-1)*k1]
     end
 
     p2 = zeros(nx^2,ny)
-    for i = 1:ny
+    @inbounds for i = 1:ny
         @views p2[:,i] = vec(S_aux'*reshape(gxx'[:,i],nx,nx)*Matrix{Float64}(I,nx,nx))
     end
     F2_aux = Matrix(p2')
     k2 = Int(round(sqrt(size(F2_aux)[2])))
     F2 = zeros(size(F2_aux)[1])
-    for i = 1:k2
+    @inbounds for i = 1:k2
         @views F2 += F2_aux[:,i+(i-1)*k2]
     end
 
@@ -434,7 +434,7 @@ function third_order(fd::Matrix{Float64}, sd::Matrix{Float64}, td::Matrix{Float6
     # Construct the hxx_dagger matrix
 
     hxx_dagger = zeros(nx^2,nx^3)
-    for i = 1:nx
+    @inbounds for i = 1:nx
         @views hxx_dagger[:,(i-1)*nx^2+1:i*nx^2] .= kron(hx,hxx[:,(i-1)*nx+1:i*nx])
     end
 
@@ -446,10 +446,10 @@ function third_order(fd::Matrix{Float64}, sd::Matrix{Float64}, td::Matrix{Float6
            + reshape(Ix[:,PermutedDimsArray(Aux,[1,2,3,4])],nx^3,nx^3))
 
     p1 = zeros(nx^3,nx+ny)
-    for i = 1:nx+ny
+    @inbounds for i = 1:nx+ny
         @views v_tilda = reshape(td'[:,i],4*(nx+ny)^2,2*(nx+ny))*Mx
         p2 = zeros(nx^2,nx)
-        for i = 1:nx
+        @inbounds for i = 1:nx
             @views p2[:,i] = vec(Mx'*reshape(v_tilda[:,i],2*(nx+ny),2*(nx+ny))*Mx)
         end
         p1[:,i] .= vec(Matrix(p2))
@@ -457,7 +457,7 @@ function third_order(fd::Matrix{Float64}, sd::Matrix{Float64}, td::Matrix{Float6
     D1 = Matrix(p1')
 
     p = zeros(nx^3,nx+ny)
-    for i = 1:nx+ny
+    @inbounds for i = 1:nx+ny
         @views p[:,i] = @views p[:,i] = vec(Mxx'*reshape(sd'[:,i],2*(nx+ny),2*(nx+ny))*Mx)
     end
     D2 = Matrix(p')
@@ -477,7 +477,7 @@ function third_order(fd::Matrix{Float64}, sd::Matrix{Float64}, td::Matrix{Float6
     Pss_aux2 = gxx*kron(Matrix{Float64}(I,nx,nx),VAR)
     k = Int(round(sqrt(size(Pss_aux2)[2])))
     Pss_aux = zeros(size(Pss_aux2)[1])
-    for i = 1:k
+    @inbounds for i = 1:k
         @views Pss_aux += Pss_aux2[:,i+(i-1)*k]
     end
     Pss = [zeros(nx,1); gss; hss; gx*hss + Pss_aux + gss]
@@ -485,10 +485,10 @@ function third_order(fd::Matrix{Float64}, sd::Matrix{Float64}, td::Matrix{Float6
     S_aux = Ns*VAR
 
     p = zeros(nx^3,nx+ny)
-    for i = 1:nx+ny
+    @inbounds for i = 1:nx+ny
         @views v_tilda = reshape(td'[:,i],4*(nx+ny)^2,2*(nx+ny))*Mx
         p2 = zeros(nx^2,nx)
-        for i = 1:nx
+        @inbounds for i = 1:nx
             @views p2[:,i] = vec(S_aux'*reshape(v_tilda[:,i],2*(nx+ny),2*(nx+ny))*Ns)
         end
         p[:,i] .= vec(p2)
@@ -497,29 +497,29 @@ function third_order(fd::Matrix{Float64}, sd::Matrix{Float64}, td::Matrix{Float6
     (n1,n2) = size(F1_aux)
     k = Int(round(n2^(1//3)))
     F1 = zeros(n1,k)
-    for j = 1:k
-        for i = 1:k
+    @inbounds for j = 1:k
+        @inbounds for i = 1:k
             @views F1[:,j] += F1_aux[:,(j-1)+i+(i-1)*k^2]
         end
     end
 
     p = zeros(nx^3,nx+ny)
-    for i = 1:nx+ny
+    @inbounds for i = 1:nx+ny
         @views p[:,i] = vec(S_aux'*reshape(sd'[:,i],2*(nx+ny),2*(nx+ny))*Nsx)
     end
     F2_aux = Matrix(p')
     (n1,n2) = size(F2_aux)
     k = Int(round(n2^(1//3)))
     F2 = zeros(n1,k)
-    for j = 1:k
-        for i = 1:k
+    @inbounds for j = 1:k
+        @inbounds for i = 1:k
             @views F2[:,j] += F2_aux[:,(j-1)+i+(i-1)*k^2]
         end
     end
 
     p = zeros(nx,nx+ny)
     # p = zeros(nx*ny,nx+ny)
-    for i = 1:nx+ny
+    @inbounds for i = 1:nx+ny
         @views p[:,i] = vec(Pss[:,:]'*reshape(sd'[:,i],2*(nx+ny),2*(nx+ny))*Mx)
     end
     F3 = Matrix(p')
@@ -528,15 +528,15 @@ function third_order(fd::Matrix{Float64}, sd::Matrix{Float64}, td::Matrix{Float6
     (n1,n2) = size(F4_aux)
     k = Int(round(n2^(1//3)))
     F4 = zeros(n1,k)
-    for j = 1:k
-        for i = 1:k
+    @inbounds for j = 1:k
+        @inbounds for i = 1:k
             @views F4[:,j] += F4_aux[:,(j-1)+i+(i-1)*k^2]
         end
     end
 
     p = zeros(nx, ny)
     # p = zeros(nx*ny,ny)
-    for i = 1:ny
+    @inbounds for i = 1:ny
         @views p[:,i] = vec(hss[:,:]'*reshape(gxx'[:,i],nx,nx)*hx)
     end
     F5 = Matrix(p')
@@ -565,7 +565,7 @@ function third_order(fd::Matrix{Float64}, sd::Matrix{Float64}, td::Matrix{Float6
             (n1,n2) = size(F1_aux)
             k = Int(round(sqrt(n2)))
             F1 = zeros(n1)
-            for i = 1:k
+            @inbounds for i = 1:k
                 @views F1 += F1_aux[:,i+(i-1)*k]
             end
 
@@ -573,7 +573,7 @@ function third_order(fd::Matrix{Float64}, sd::Matrix{Float64}, td::Matrix{Float6
             (n1,n2) = size(F2_aux)
             k = Int(round(sqrt(n2)))
             F2 = zeros(n1)
-            for i = 1:k
+            @inbounds for i = 1:k
                 @views F2 += F2_aux[:,i+(i-1)*k]
             end
 
@@ -581,7 +581,7 @@ function third_order(fd::Matrix{Float64}, sd::Matrix{Float64}, td::Matrix{Float6
             (n1,n2) = size(F3_aux)
             k = Int(round(sqrt(n2)))
             F3 = zeros(n1)
-            for i = 1:k
+            @inbounds for i = 1:k
                 @views F3 += F3_aux[:,i+(i-1)*k]
             end
 
@@ -616,7 +616,7 @@ function martin_van_loan(a::Matrix{Float64}, b::Matrix{Float64}, c::Matrix{Float
     p = k + 2
     TT = Array{typeof(t)}(undef,p)
     TT[1] = s
-    for i = 2:p
+    @inbounds for i = 2:p
         TT[i] = conj(t)
     end
 
@@ -631,9 +631,9 @@ function martin_van_loan(a::Matrix{Float64}, b::Matrix{Float64}, c::Matrix{Float
 
     N = prod(n[2:end][1:k+1])
     e_aux = Array{Complex{Real}}(undef,N,size(Matrix(d'),2))
-    for j = 1:size(Matrix(d'),2)
+    @inbounds for j = 1:size(Matrix(d'),2)
         @views z = Matrix(d')[:,j]
-        for i = 1:k+1
+        @inbounds for i = 1:k+1
             z = (inv_Q[i]*reshape(z,n[2:end][i],Int(N/n[2:end][i])))'
         end
         e_aux[:,j] .= reshape(Matrix(z),N)
@@ -644,9 +644,9 @@ function martin_van_loan(a::Matrix{Float64}, b::Matrix{Float64}, c::Matrix{Float
 
     N = prod(n[2:end][1:k+1])
     x_aux = Array{Complex{Real}}(undef,N,size(Matrix(y'),2))
-    for j = 1:size(Matrix(y'),2)
+    @inbounds for j = 1:size(Matrix(y'),2)
         @views z = Matrix(y')[:,j]
-        for i = 1:k+1
+        @inbounds for i = 1:k+1
             z = (Q[i]*reshape(z,n[2:end][i],Int(N/n[2:end][i])))'
         end
         x_aux[:,j] .= reshape(Matrix(z),N)
@@ -712,21 +712,21 @@ function KPShiftSolve(TT::Vector{Matrix{ComplexF64}}, n::Vector{Int64},c::Vector
     else
         y = Array{Complex{Real}}(undef,N)
         mp = Int(N/n[p])
-        for i = n[p]:-1:1
+        @inbounds for i = n[p]:-1:1
             idx = ((i-1)*mp+1):(i*mp)
             y[idx] = KPShiftSolve(TT[1:(p-1)],n[1:(p-1)],c[idx],lambda,TT[p][i,i])
 
             N = prod(n[1:p-1])
             z = Array{Complex{Real}}(undef,N,size(y[idx],2))
-            for j = 1:size(y[idx],2)
+            @inbounds for j = 1:size(y[idx],2)
                 @views m = y[idx][:,j]
-                for i = 1:p-1
+                @inbounds for i = 1:p-1
                     m = (TT[1:p][i]*reshape(m,n[i],Int(N/n[i])))'
                 end
                 z[:,j] .= reshape(Matrix(m),N)
             end
 
-            for j = 1:(i-1)
+            @inbounds for j = 1:(i-1)
                 jdx = ((j-1)*mp+1):(j*mp)
                 c[jdx] = c[jdx] - TT[p][j,i]*z
             end
@@ -775,7 +775,7 @@ function simulation_dsge(model, sol_mat, SS_evaluated, VAR, TS, initial_state, f
     end
 
     if flag_simul
-        for i = 2:TS+1
+        @inbounds for i = 2:TS+1
             #simulated_states_f[:,i]  = sol_mat.fo_mat.hx*simulated_states_f[:,i-1] + (VAR.>0.0)*randn(nx)
             #simulated_states_f[:,i]  = sol_mat.fo_mat.hx*simulated_states_f[:,i-1] + (sqrt.(VAR).>0.0)*randn(nx)
             simulated_states_f[:,i]  = sol_mat.fo_mat.hx*simulated_states_f[:,i-1] + sqrt.(VAR)*randn(nx)
@@ -791,7 +791,7 @@ function simulation_dsge(model, sol_mat, SS_evaluated, VAR, TS, initial_state, f
             end
         end
     else
-        for i = 2:TS+1
+        @inbounds for i = 2:TS+1
             simulated_states_f[:,i]  = hx*simulated_states_f[:,i-1]
             simulated_jumps_f[:,i-1] = gx*simulated_states_f[:,i-1]
             if flag_order > 1

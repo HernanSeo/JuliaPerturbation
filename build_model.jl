@@ -45,6 +45,22 @@ function build_model(flag_order, flag_deviation)
         x, y, xp, yp,
         e, eta, f, SS, PAR_SS)
 
+    # Create the reusable expresions for eta, SS and derivatives, and the functions to evaluate them efficiently
+    ShockVAR_string = ShockVAR(model)
+    eval(ShockVAR_string)
+
+    PAR_SS_string   = adjustpar(model)
+    eval(PAR_SS_string)
+    
+    SS_string       = steadystate(model)
+    eval(SS_string)
+
+    SS_error_string = ss_error(model)
+    eval(SS_error_string)
+
+    deriv_string    = derivatives(model)
+    eval(deriv_string)
+
     return model
 
 end

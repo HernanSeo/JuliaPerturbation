@@ -38,24 +38,6 @@ include("priors.jl")
 
         model = build_model(flag_order, flag_deviation)
 
-## Model processing
-
-    # Create the reusable expresions for eta, SS and derivatives, and the functions to evaluate them efficiently
-        ShockVAR_string = ShockVAR(model)
-        eval(ShockVAR_string)
-
-        PAR_SS_string   = adjustpar(model)
-        eval(PAR_SS_string)
-        
-        SS_string       = steadystate(model)
-        eval(SS_string)
-
-        SS_error_string = ss_error(model)
-        eval(SS_error_string)
-
-        deriv_string    = derivatives(model)
-        eval(deriv_string)
-
 ## Solution
      # Parametrization
         ALPHA  =  0.3
@@ -96,4 +78,4 @@ include("priors.jl")
 ## Estimation
         initial_para=[0.9; 0.15]
         c=0.1
-        @time estimation_results = smc_rwmh_neoclassical_4_0_v2(initial_para, data', model, PAR_SS, c)
+        @time estimation_results = smc_rwmh_neoclassical(initial_para, data', model, PAR_SS, c)
