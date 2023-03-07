@@ -7,23 +7,22 @@
 # If you find typos, please let us know.
 
 function build_model(flag_order, flag_deviation)
-    # Parameters
-    # Parameters
+# Parameters
     @vars ALPHA BETA DELTA RHO SIGMA MUU AA
-    parameters  =   [ALPHA; BETA; DELTA; RHO; SIGMA; MUU; AA]
-    estimate    =   [RHO; MUU]
+        parameters  =   [ALPHA; BETA; DELTA; RHO; SIGMA; MUU; AA]
+        estimate    =   [RHO; MUU]
 
 # Variables
-@vars k kp a ap c cp n np yy yyp r rp ii iip
-   x    =   [k; a]
-   y    =   [c; n; r; yy; ii]
-   xp   =   [kp; ap]
-   yp   =   [cp; np; rp; yyp; iip]
+    @vars k kp a ap c cp n np yy yyp r rp ii iip
+        x    =   [k; a]
+        y    =   [c; n; r; yy; ii]
+        xp   =   [kp; ap]
+        yp   =   [cp; np; rp; yyp; iip]
 
 # Shock
-@vars epsilon
-    e   =   [epsilon]
-    eta =   Array([0.0; MUU])
+    @vars epsilon
+        e   =   [epsilon]
+        eta =   Array([0.0; MUU])
 
 # Equilibrium conditions
     f1  =   c + kp - (1-DELTA) * k - a * k^ALPHA * n^(1-ALPHA)
