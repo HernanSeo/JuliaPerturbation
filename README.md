@@ -1,11 +1,15 @@
 # JuliaPerturbation
-Replication material package for "Perturbating and Estimating DSGE models in Julia" by Salazar-Perez and Seoane
-The codes are available without any warrant. Use it at your own risk.
+Replication material package for "Perturbating and Estimating DSGE models in Julia" by Salazar-Perez and Seoane.
+
+These codes are available for free and without any guarantee. Use them at your own risk.
+
 If you find typos please let us know.
+
 If you use the codes please cite us.
 
 
 First version: July 2021.
+
 This version: March 2023.
 
 ### Contents ###
