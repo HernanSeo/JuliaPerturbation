@@ -1284,7 +1284,9 @@ function objfun(yy::Matrix{Float64}, p0, model::NamedTuple, PAR::Vector{Float64}
     VAR     =   eval_ShockVAR(PAR)
     PAR_SS  =   eval_PAR_SS(PAR)
     if !model.flag_SSsolver
-        SS      =   eval_SS(PAR_SS)
+        SS  =   eval_SS(PAR_SS)
+    else
+        SS  =   SS_solver(model, PAR)
     end
     deriv   =   eval_deriv(PAR_SS, SS)
 
