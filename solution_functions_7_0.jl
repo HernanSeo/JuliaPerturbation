@@ -856,8 +856,22 @@ function simulate_model(model::NamedTuple, sol_mat::NamedTuple, TS::Int, eta::Ar
 end
 
 
-function smc_rwmh(model::NamedTuple, data::Matrix{Float64}, PAR::Vector{Float64}, PAR_SS::Vector{Float64}, VAR::Array{Float64}, SS::Vector{Float64}, deriv::NamedTuple, sol_mat::NamedTuple, c::Float64, npart::Int, nphi::Int, lam::Int)
-    
+function smc_rwmh(model::NamedTuple, data::Matrix{Float64}, PAR::Vector{Float64}, PAR_SS::Vector{Float64}, VAR::Array{Float64}, SS::Vector{Float64}, 
+                    deriv::NamedTuple, sol_mat::NamedTuple, c::Float64, npart::Int, nphi::Int, lam::Int)
+    # Code translated from:
+    # Description: A simple SMC example using the
+    #   the bimodal "DSGE" model from Schorfheide [2012].
+    #   The transition kernel is simplified to a random-walk MH.
+    #
+    #  For more; see:
+    #    "Sequential Monte Carlo Sampling for DSGE Models"
+    #      by Ed Herbst & Frank Schorfheide.
+    #
+    # Author: Ed Herbst [edward.p.herbst@frb.gov]
+    # Last-Updated: 05/09/14
+    # extended to include the features of the Fortran code by Hernan Seoane
+
+
     phi_bend = true
     ny, nobs = size(data)
     acpt=0.25
@@ -1046,8 +1060,21 @@ function smc_rwmh(model::NamedTuple, data::Matrix{Float64}, PAR::Vector{Float64}
 end
 
 
-function smc_rwmh_threads(model::NamedTuple, data::Matrix{Float64}, PAR::Vector{Float64}, PAR_SS::Vector{Float64}, VAR::Array{Float64}, SS::Vector{Float64}, deriv::NamedTuple, sol_mat::NamedTuple, c::Float64, npart::Int, nphi::Int, lam::Int)
-    
+function smc_rwmh_threads(model::NamedTuple, data::Matrix{Float64}, PAR::Vector{Float64}, PAR_SS::Vector{Float64}, VAR::Array{Float64}, SS::Vector{Float64}, 
+                            deriv::NamedTuple, sol_mat::NamedTuple, c::Float64, npart::Int, nphi::Int, lam::Int)
+    # Code translated from:
+    # Description: A simple SMC example using the
+    #   the bimodal "DSGE" model from Schorfheide [2012].
+    #   The transition kernel is simplified to a random-walk MH.
+    #
+    #  For more; see:
+    #    "Sequential Monte Carlo Sampling for DSGE Models"
+    #      by Ed Herbst & Frank Schorfheide.
+    #
+    # Author: Ed Herbst [edward.p.herbst@frb.gov]
+    # Last-Updated: 05/09/14
+    # extended to include the features of the Fortran code by Hernan Seoane
+
     phi_bend = true
     ny, nobs = size(data)
     acpt=0.25
